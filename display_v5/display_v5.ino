@@ -4,12 +4,11 @@
 #include<string.h>
 
 const int numDevices1 = 5;
-const int numDevices2 = 5;
-const long scrollDelay = 10;
+const int numDevices2 = 1;
+const long scrollDelay = 60;
 unsigned long bufferLong [14] = {0};
-unsigned long bufferLong2 [7] = {0};
 LedControl lc1=LedControl(12,11,10,numDevices1);//12=1,11=13,10=12
-LedControl lc2=LedControl(5,4,3,numDevices2); //7=1,8=13,9=12
+LedControl lc2=LedControl(7,8,9,numDevices2); //7=1,8=13,9=12
 
 unsigned int flag=1; //1 for scrolling, 0 for static
 
@@ -1009,19 +1008,13 @@ void loadBufferLong(int ascii){
 void rotateBufferLong(){
     for (int a=0;a<7;a++){
         unsigned long x = bufferLong [a*2];
-        byte b = bitRead(x,31);
+        byte b = bitRead(x,39);
         x = x<<1;
         bufferLong [a*2] = x;
         x = bufferLong [a*2+1];
         x = x<<1;
         bitWrite(x,0,b);
         bufferLong [a*2+1] = x;
-        x = bufferLong [a*2+1];
-        b = bitRead(x,31);
-        x = bufferLong2 [a];
-        x = x<<1;
-        bitWrite(x,0,b);
-        bufferLong2 [a]=x;
     }
 }
 
@@ -1029,21 +1022,10 @@ void printBufferLong(){
   for (int a=0;a<7;a++){
     unsigned long x = bufferLong [a*2+1];
     byte y = x;
-    lc1.setRow(3,a,y);
-    y = (x>>8);
     lc1.setRow(4,a,y);
-    y = (x>>16);
-    lc2.setRow(0,a,y);
-    y = (x>>24);
-    lc2.setRow(1,a,y);
-    x = bufferLong2 [a];
-    y = x;
-    lc2.setRow(2,a,y);
-    y = (x>>8);
-    lc2.setRow(3,a,y);
-    y = (x>>16);
-    lc2.setRow(4,a,y);
     x = bufferLong [a*2];
+    y=(x>>32);
+    lc1.setRow(3,a,y);
     y = (x>>24);
     lc1.setRow(2,a,y);
     y = (x>>16);

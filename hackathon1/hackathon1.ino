@@ -1,17 +1,17 @@
-#include<MQ2.h>
+//#include<MQ2.h>
 #include<string.h>
 #include<ctype.h>
 #include<SoftwareSerial.h>
 
 SoftwareSerial mySerial(9,10);
-
+int flag=0;
 int RXPin=15;
 int TXPin=14;
 int smokePin=A5;
 float* smokeValue=0;
 float smoke;
 int smokeFlag=0;
-MQ2 gas(smokePin);
+//MQ2 gas(smokePin);
 char GPSData[60]="";
 float longitude=0;
 float latitude=0;
@@ -72,14 +72,14 @@ void getGPS(){
   }
 }
 
-void sendSMS(float lati,float longi){
+void sendSMS(){
   mySerial.println("AT+CMGF=1");   
   delay(1000);  
   mySerial.println("AT+CMGS=\"+9779809482020\"\r"); 
   delay(1000);
-  mySerial.println(lati);
+  mySerial.println("Test message from arduino.");
   delay(1000);
-  mySerial.println(longi);
+  mySerial.println("Hell yeah!");
   delay(100);
    mySerial.println((char)26);// ASCII code of CTRL+Z
   delay(1000);
@@ -95,18 +95,15 @@ void setup(){
   int i=0;
   Serial.begin(9600);
   mySerial.begin(9600);
-  gas.begin();
+  //gas.begin();
   for(i=0;i<60;i++){
     GPSData[i]=' ';
   }
 }
 
 void loop(){
-  getGPS2();
-  smokeFlag=readSmoke();
-  if (smokeFlag==1){
-    if (mySerial.available()>0){
-    sendSMS(longitude,latitude);}
+  if (flag==0){
+    sendSMS();
+    flag=1;
   }
 }
-
