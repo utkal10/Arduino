@@ -2,10 +2,19 @@
 #include <LedControl.h>
 #include<EEPROM.h>
 #include<string.h>
+#include "SIM900.h"
+#include <SoftwareSerial.h>
+#include "sms.h"
+
+SMSGSM sms;
+char sms_text[100];
+char phone_number[20];
+boolean started=false;
+char sms_position;
 
 const int numDevices1 = 5;
 const int numDevices2 = 5;
-const long scrollDelay =5;
+const long scrollDelay = 10;
 unsigned long bufferLong [14] = {0};
 unsigned long bufferLong2 [7] = {0};
 LedControl lc1=LedControl(12,11,10,numDevices1);//12=1,11=13,10=12
@@ -13,8 +22,8 @@ LedControl lc2=LedControl(5,4,3,numDevices2); //5=1,4=13,3=12
 
 unsigned int flag=1; //1 for scrolling, 0 for static
 
-unsigned char text1[] ={"<1s1>UTKAL "};
-unsigned char text2[]={"<1s2>SANJEL   "};
+unsigned char text1[] ={"<1s1>Kathmandu "};
+unsigned char text2[]={"<1s2>University  "};
 unsigned char text3[]={};
 unsigned char text4[]={};
 
@@ -917,22 +926,30 @@ void save_as_priority(unsigned char * message,int sizexx){
       text3[i-200]=message[i-200];
     }
   }
+   else if(message[3]='4'){
+    for(int i=300;i<300+sizexx;i++){
+      EEPROM.update(i,message[i-300]);
+      text3[i-300]=message[i-300];
+    }
+   }
 }
 
 void loop(){
-  //check for incoming message
-  //while(Serial.available()>0){
-    //read_sms();
-  //}
+  if(started)
+  {
+    sms_position=sms.IsSMSPresent(SMS_UNREAD);
+    if (sms_position)
+    {
+      sms.GetSMS(sms_position,phone_number,sms_text,100);
+      save_as_priority(sms_text,sizeof(sms_text)/sizeof(sms_text[0]));
+    }
+  }
   display_message(text1,sizeof(text1)/sizeof(text1[0]),int(text1[3])-'0',text1[2]);
   display_message(text2,sizeof(text2)/sizeof(text2[0]),int(text2[3])-'0',text2[2]);
   //display_message(text3);
   //display_message(text4);
 }
 
-void read_sms(){
-  
-}
 
 void display_message(unsigned char * message,int sizexx,int count,char sym)
 {
@@ -949,6 +966,9 @@ void display_message(unsigned char * message,int sizexx,int count,char sym)
 
 void setup(){
   Serial.begin(9600);
+  if(gsm.begin(4800)){
+    started=true;
+  }
   for (int x=0; x<numDevices1; x++){
     lc1.shutdown(x,false);       //The MAX72XX is in power-saving mode on startup
     lc1.setIntensity(x,10);       // Set the brightness to default value
