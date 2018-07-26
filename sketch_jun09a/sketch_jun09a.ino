@@ -3,7 +3,7 @@
 #include<ctype.h>
 #include<SoftwareSerial.h>
 
-SoftwareSerial mySerial(6,7);
+SoftwareSerial mySerial(7,6);
 int flag=0;
 
 void sendSMS(){

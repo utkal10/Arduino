@@ -2,25 +2,38 @@
 #include <LedControl.h>
 #include<EEPROM.h>
 #include<string.h>
+#include "SIM900.h"
+#include <SoftwareSerial.h>
+#include "sms.h"
+
+SMSGSM sms;
+char sms_text[100];
+char phone_number[20];
+boolean started=false;
+char sms_position;
 
 const int numDevices1 = 5;
 const int numDevices2 = 5;
-const long scrollDelay =5;
+const int numDevices3 = 5;
+const int numDevices4 = 5;
+
+const long scrollDelay = 5;
+
 unsigned long bufferLong [14] = {0};
 unsigned long bufferLong2 [7] = {0};
-LedControl lc1=LedControl(A0,A1,A2,numDevices1);//12=1,11=13,10=12
+unsigned long bufferLong11 [14] = {0};
+unsigned long bufferLong12 [7] = {0};
+
+LedControl lc1=LedControl(12,11,10,numDevices1);//12=1,11=13,10=12
 LedControl lc2=LedControl(5,4,3,numDevices2); //5=1,4=13,3=12
+LedControl lc3=LedControl(A0,A1,A2,numDevices3);
+LedControl lc4=LedControl(A3,A4,A5,numDevices4);
 
-unsigned int flag=1; //1 for scrolling, 0 for static
+int flag=1; //1 for scrolling, 0 for static
 
-unsigned char text1[] ={"<1s1>Kathmandu "};
-unsigned char text2[]={"<1s2> University "};
-unsigned char text3[]={};
-unsigned char text4[]={};
-
-unsigned char ttext1[]={};
-unsigned char ttext2[]={};
-unsigned char ttext3[]={};
+unsigned char text1[] ={"<1s1>  UTKAL  "};
+unsigned char text2[]={"<1s2>Send SMS  "};
+unsigned char text3[]={"<1s3>Send SMS "};
 
 
 const unsigned char font5x7 [] PROGMEM = {
@@ -51,13 +64,13 @@ const unsigned char font5x7 [] PROGMEM = {
     B00000000,
     4,
 
-    B11111111,  //#
-    B11111111,
-    B11111111,
-    B11111111,
-    B11111111,
-    B11111111,
-    B11111111,
+    B01010000,  //#
+    B01010000,
+    B11111000,
+    B01010000,
+    B11111000,
+    B01010000,
+    B01010000,
     6,
 
     B00100000,  //$
@@ -144,11 +157,11 @@ const unsigned char font5x7 [] PROGMEM = {
     B00000000,  //-
     B00000000,
     B00000000,
-    B11100000,
+    B11111000,
     B00000000,
     B00000000,
     B00000000,
-    4,
+    6,
 
     B00000000,  //.
     B00000000,
@@ -177,14 +190,14 @@ const unsigned char font5x7 [] PROGMEM = {
     B01110000,
     6,
 
-    B00100000,  //1
-    B01100000,
-    B10100000,
-    B00100000,
-    B00100000,
-    B00100000,
-    B11111000,
-    5,
+    B01000000,  //1
+    B11000000,
+    B01000000,
+    B01000000,
+    B01000000,
+    B01000000,
+    B11100000,
+    4,
 
     B01110000,  //2
     B10001000,
@@ -630,9 +643,9 @@ const unsigned char font5x7 [] PROGMEM = {
     B00000000,  //c
     B00000000,
     B01110000,
+    B10001000,
     B10000000,
-    B10000000,
-    B10000000,
+    B10001000,
     B01110000,
     6,
 
@@ -904,6 +917,7 @@ void save_as_priority(unsigned char * message,int sizexx){
       EEPROM.update(i,message[i]);
       text1[i]=message[i];
     }
+    //flag=checkKerning(sizexx);
   }
   else if(message[3]='2'){
     for(int i=100;i<100+sizexx;i++){
@@ -917,62 +931,104 @@ void save_as_priority(unsigned char * message,int sizexx){
       text3[i-200]=message[i-200];
     }
   }
+
 }
 
 void loop(){
-  display_message(text1,sizeof(text1)/sizeof(text1[0]),int(text1[3])-'0',text1[2]);
-  display_message(text2,sizeof(text2)/sizeof(text2[0]),int(text2[3])-'0',text2[2]);
+  if(started)
+  {
+    sms_position=sms.IsSMSPresent(SMS_UNREAD);
+    if (sms_position)
+    {
+      sms.GetSMS(sms_position,phone_number,sms_text,100);
+      if(sms_text[3]=='1'){
+        strcpy(text1,sms_text);
+        save_as_priority(text1,sizeof(text1)/sizeof(text1[0]));
+      }
+      else if (sms_text[3]=='2'){
+        strcpy(text2,sms_text);
+        save_as_priority(text2,sizeof(text2)/sizeof(text2[0]));
+      }
+      else if (sms_text[3]=='3'){
+        strcpy(text3,sms_text);
+        save_as_priority(text3,sizeof(text3)/sizeof(text3[0]));
+      }
+    }
+  }
+  display_message(sizeof(text1)/sizeof(text1[0]),int(text1[3])-'0',text1[3]);
+  display_message(sizeof(text2)/sizeof(text2[0]),int(text2[3])-'0',text2[3]);
+  display_message(sizeof(text3)/sizeof(text3[0]),int(text3[3])-'0',text3[3]);
 }
 
-void display_message(unsigned char * message,int sizexx,int count,char sym)
+
+void display_message(int sizexx,int count,char prio)
 {
-  if(sym=='s'){
-    flag=1;
-    scrollMessage(message,sizexx,count);
-  }
-  else if(sym=='t'){
-    flag=0;
-    for(int i=0;i<4;i++){
-    scrollMessage(message,sizexx,count);}
-  }
+    scrollMessage(sizexx,count,prio);
 }
 
 void setup(){
   Serial.begin(9600);
+  if(gsm.begin(4800)){
+    started=true;
+  }
   for (int x=0; x<numDevices1; x++){
-    lc1.shutdown(x,false);       //The MAX72XX is in power-saving mode on startup
-    lc1.setIntensity(x,10);       // Set the brightness to default value
-    lc1.clearDisplay(x);         // and clear the display
+    lc1.shutdown(x,false);     
+    lc1.setIntensity(x,10);    
+    lc1.clearDisplay(x);        
     }
   for (int x=0; x<numDevices2;x++){
-    lc2.shutdown(x,false);       //The MAX72XX is in power-saving mode on startup
-    lc2.setIntensity(x,10);       // Set the brightness to default value
-    lc2.clearDisplay(x);         // and clear the display
+    lc2.shutdown(x,false);     
+    lc2.setIntensity(x,10);      
+    lc2.clearDisplay(x);       
+    }
+  for (int x=0; x<numDevices3;x++){
+    lc3.shutdown(x,false);       
+    lc3.setIntensity(x,10);      
+    lc3.clearDisplay(x);     
+    }
+  for (int x=0; x<numDevices4;x++){
+    lc4.shutdown(x,false);       
+    lc4.setIntensity(x,10);       
+    lc4.clearDisplay(x);         
     }
    save_as_priority(text1,sizeof(text1)/sizeof(text1[0]));
    save_as_priority(text2,sizeof(text2)/sizeof(text2[0]));
+   save_as_priority(text3,sizeof(text3)/sizeof(text3[0]));
 }
 
 
-void scrollMessage(const unsigned char * messageString,int sizexx,int count) {
-    int counter=(count-1)*100;
+void scrollMessage(int sizexx,int count,char prio) {
+   int counter=(count-1)*100;
     int myChar=0;
     for(int i=counter+5;i<counter+sizexx;i++){
       myChar=EEPROM.read(i);
       if(myChar!=0){
-        loadBufferLong(myChar);
+        loadBufferLong(myChar,prio);
       }
       else if(myChar==0){
         break;
       }
     }
-    if (flag==0){       //static
-      printBufferLong();
-     }
+    if(prio=='1'){
+     printBufferLong2();
+    }
 }
 
-void loadBufferLong(int ascii){
+void loadBufferLong(int ascii,char prio){
     if (ascii >= 0x20 && ascii <=0x7f){
+      if(prio=='1'){
+        for (int a=0;a<7;a++){
+            unsigned long c = pgm_read_byte_near(font5x7 + ((ascii - 0x20) * 8) + a);
+            unsigned long x = bufferLong11 [a*2];
+            x = x | c;
+            bufferLong11 [a*2] = x;
+        }
+        byte count = pgm_read_byte_near(font5x7 +((ascii - 0x20) * 8) + 7);
+        for (byte x=0; x<count;x++){
+            rotateBufferLong2();
+        }
+    }
+    else{
         for (int a=0;a<7;a++){
             unsigned long c = pgm_read_byte_near(font5x7 + ((ascii - 0x20) * 8) + a);
             unsigned long x = bufferLong [a*2];
@@ -982,12 +1038,14 @@ void loadBufferLong(int ascii){
         byte count = pgm_read_byte_near(font5x7 +((ascii - 0x20) * 8) + 7);
         for (byte x=0; x<count;x++){
             rotateBufferLong();
-            if (flag==1){     //scroll
-            printBufferLong();}
+            printBufferLong();
             delay(scrollDelay);
         }
     }
+    
+    }
 }
+
 
 void rotateBufferLong(){
     for (int a=0;a<7;a++){
@@ -1005,6 +1063,25 @@ void rotateBufferLong(){
         x = x<<1;
         bitWrite(x,0,b);
         bufferLong2 [a]=x;
+    }
+}
+
+void rotateBufferLong2(){
+    for (int a=0;a<7;a++){
+        unsigned long x = bufferLong11 [a*2];
+        byte b = bitRead(x,31);
+        x = x<<1;
+        bufferLong11 [a*2] = x;
+        x = bufferLong11 [a*2+1];
+        x = x<<1;
+        bitWrite(x,0,b);
+        bufferLong11 [a*2+1] = x;
+        x = bufferLong11 [a*2+1];
+        b = bitRead(x,31);
+        x = bufferLong12 [a];
+        x = x<<1;
+        bitWrite(x,0,b);
+        bufferLong12 [a]=x;
     }
 }
 
@@ -1034,4 +1111,47 @@ void printBufferLong(){
     y = (x>>8);
     lc1.setRow(0,a,y);
   }
+}
+
+void printBufferLong2(){
+  for (int a=0;a<7;a++){
+    unsigned long x = bufferLong11 [a*2+1];
+    byte y = x;
+    lc3.setRow(3,a,y);
+    y = (x>>8);
+    lc3.setRow(4,a,y);
+    y = (x>>16);
+    lc4.setRow(0,a,y);
+    y = (x>>24);
+    lc4.setRow(1,a,y);
+    x = bufferLong12 [a];
+    y = x;
+    lc4.setRow(2,a,y);
+    y = (x>>8);
+    lc4.setRow(3,a,y);
+    y = (x>>16);
+    lc4.setRow(4,a,y);
+    x = bufferLong11 [a*2];
+    y = (x>>24);
+    lc3.setRow(2,a,y);
+    y = (x>>16);
+    lc3.setRow(1,a,y);
+    y = (x>>8);
+    lc3.setRow(0,a,y);
+  }
+}
+
+int checkKerning(int sizexx){
+  int myChar=0;
+  int count=0;
+  for(int i=5;i<sizexx;i++){
+    myChar=EEPROM.read(i);
+    count = count + pgm_read_byte_near(font5x7 +((myChar - 0x20) * 8) + 7);
+  }
+  if(count<=155){
+    return 1;    //static
+  }
+  else{
+    return 0;
+  } 
 }

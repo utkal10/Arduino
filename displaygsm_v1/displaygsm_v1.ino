@@ -14,11 +14,15 @@ char sms_position;
 
 const int numDevices1 = 5;
 const int numDevices2 = 5;
-const long scrollDelay = 10;
+const int numDevices3 = 5;
+const int numDevices4 = 5;
+const long scrollDelay = 5;
 unsigned long bufferLong [14] = {0};
 unsigned long bufferLong2 [7] = {0};
 LedControl lc1=LedControl(12,11,10,numDevices1);//12=1,11=13,10=12
 LedControl lc2=LedControl(5,4,3,numDevices2); //5=1,4=13,3=12
+LedControl lc3=LedControl(A0,A1,A2,numDevices3);
+LedControl lc4=LedControl(A3,A4,A5,numDevices4);
 
 unsigned int flag=1; //1 for scrolling, 0 for static
 
@@ -926,12 +930,7 @@ void save_as_priority(unsigned char * message,int sizexx){
       text3[i-200]=message[i-200];
     }
   }
-   else if(message[3]='4'){
-    for(int i=300;i<300+sizexx;i++){
-      EEPROM.update(i,message[i-300]);
-      text3[i-300]=message[i-300];
-    }
-   }
+
 }
 
 void loop(){
@@ -941,13 +940,23 @@ void loop(){
     if (sms_position)
     {
       sms.GetSMS(sms_position,phone_number,sms_text,100);
-      save_as_priority(sms_text,sizeof(sms_text)/sizeof(sms_text[0]));
+      if(sms_text[3]=='1'){
+        strcpy(text1,sms_text);
+        save_as_priority(text1,sizeof(text1)/sizeof(text1[0]));
+      }
+      else if (sms_text[3]=='2'){
+        strcpy(text2,sms_text);
+        save_as_priority(text2,sizeof(text2)/sizeof(text2[0]));
+      }
+      else if (sms_text[3]=='3'){
+        strcpy(text3,sms_text);
+        save_as_priority(text3,sizeof(text3)/sizeof(text3[0]));
+      }
     }
   }
   display_message(text1,sizeof(text1)/sizeof(text1[0]),int(text1[3])-'0',text1[2]);
   display_message(text2,sizeof(text2)/sizeof(text2[0]),int(text2[3])-'0',text2[2]);
-  //display_message(text3);
-  //display_message(text4);
+  display_message(text3,sizeof(text3)/sizeof(text3[0]),int(text3[3])-'0',text3[3]);
 }
 
 
