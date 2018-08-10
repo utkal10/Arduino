@@ -1,4 +1,4 @@
- 
+
 #include <LedControl.h>
 #include<EEPROM.h>
 #include<string.h>
@@ -31,8 +31,9 @@ LedControl lc4=LedControl(A3,A4,A5,numDevices4);
 
 int flag=1; //1 for scrolling, 0 for static
 
-unsigned char text1[] ={"<1s1>                    9806445713   "};
-unsigned char text2[]={"<1s2>Send SMS Send SMS send SMS send SMS send SMS "};
+unsigned char text1[] ={"<1s1>  Ogggaa boogaa boogaa "};
+unsigned char text2[]={"<1s2>Send SMS  "};
+unsigned char text3[]={"<1s3>Send SMS "};
 
 
 const unsigned char font5x7 [] PROGMEM = {
@@ -915,7 +916,6 @@ void save_as_priority(unsigned char * message,int sizexx){
     for(int i=0;i<sizexx;i++){
       EEPROM.update(i,message[i]);
       text1[i]=message[i];
-      loadBufferLong(EEPROM.read(i),'1');
     }
     //flag=checkKerning(sizexx);
   }
@@ -923,6 +923,12 @@ void save_as_priority(unsigned char * message,int sizexx){
     for(int i=100;i<100+sizexx;i++){
       EEPROM.update(i,message[i-100]);
       text2[i-100]=message[i-100];
+    }
+  }
+  else if(message[3]='3'){
+    for(int i=200;i<200+sizexx;i++){
+      EEPROM.update(i,message[i-200]);
+      text3[i-200]=message[i-200];
     }
   }
 
@@ -943,10 +949,15 @@ void loop(){
         strcpy(text2,sms_text);
         save_as_priority(text2,sizeof(text2)/sizeof(text2[0]));
       }
+      else if (sms_text[3]=='3'){
+        strcpy(text3,sms_text);
+        save_as_priority(text3,sizeof(text3)/sizeof(text3[0]));
+      }
     }
   }
   display_message(sizeof(text1)/sizeof(text1[0]),int(text1[3])-'0',text1[3]);
   display_message(sizeof(text2)/sizeof(text2[0]),int(text2[3])-'0',text2[3]);
+  display_message(sizeof(text3)/sizeof(text3[0]),int(text3[3])-'0',text3[3]);
 }
 
 
@@ -960,12 +971,6 @@ void setup(){
   if(gsm.begin(4800)){
     started=true;
   }
-  //if (started==true){
-    //for(int i=-20;i<=20;i++)
-      // {
-        //   sms.DeleteSMS(i);
-       //}
-  //}
   for (int x=0; x<numDevices1; x++){
     lc1.shutdown(x,false);     
     lc1.setIntensity(x,10);    
@@ -986,8 +991,10 @@ void setup(){
     lc4.setIntensity(x,10);       
     lc4.clearDisplay(x);         
     }
+
    save_as_priority(text1,sizeof(text1)/sizeof(text1[0]));
    save_as_priority(text2,sizeof(text2)/sizeof(text2[0]));
+   save_as_priority(text3,sizeof(text3)/sizeof(text3[0]));
 }
 
 

@@ -24,7 +24,7 @@ Output:		none
 
 Comments:	It would be nice to call this function
  			automatically when gsm.begin is called (of course
- 			only if a SIM908 is used). 
+ 			only if a SIM908 is used).
 **********************************************************/
 
 char SIMCOM900::forceON()
@@ -38,7 +38,7 @@ char SIMCOM900::forceON()
      if(IsStringReceived(str_ok)) {
           ret_val=1;
      }
-     
+
      p_char = strchr((char *)(gsm.comm_buf),',');
      p_char1 = p_char+1;
      *(p_char1+2)=0;
